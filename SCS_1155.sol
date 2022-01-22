@@ -15,6 +15,7 @@ struct issuedProposal {
 struct redeemedProposal {
     uint targetProposalID;
     uint agreedAmount;
+    uint burntAmount;
 }
 
 contract SCS is ERC1155 {
@@ -30,7 +31,6 @@ contract SCS is ERC1155 {
     public
     ERC1155("https://abcoathup.github.io/SampleERC1155/api/token/{id}.json")  
     {
-        // chairman = msg.sender;
         boardMember[msg.sender] = true;
         boardMemberAmount++;
         for (uint i = 0; i < other_member_address.length; i++) {
@@ -64,8 +64,8 @@ contract SCS is ERC1155 {
     }
 
     
-    function askRedeem(uint targetProposalID) external isBoardMember returns (uint) {
-        redeemedProposals[proposalCnt] = redeemedProposal(targetProposalID, 0);
+    function askRedeem(uint targetProposalID, uint burntAmout) external isBoardMember returns (uint) {
+        redeemedProposals[proposalCnt] = redeemedProposal(targetProposalID, 0, burntAmout);
         return proposalCnt++;
     }
 
@@ -79,10 +79,15 @@ contract SCS is ERC1155 {
         require(redeemedProposals[proposalID].agreedAmount == boardMemberAmount, "not all agreed yet");
         uint targetId = redeemedProposals[proposalID].targetProposalID;
         require(issuedProposals[targetId].proposer == msg.sender, "Caller is not the proposer of target proposal");
-        
-        _burn(msg.sender, issuedProposals[targetId].proposalID, issuedProposals[targetId].shareAmount);
-        issuedProposals[targetId].shareAmount = 0;
+        require(issuedProposals[targetId].shareAmount >= redeemedProposals[proposalID].burntAmount, "burnt amount exceeds share amount");
+
+        _burn(msg.sender, issuedProposals[targetId].proposalID, redeemedProposals[proposalID].burntAmount);
+        issuedProposals[targetId].shareAmount -= redeemedProposals[proposalID].burntAmount;
     }
 
+    function reissue(uint proposalID, uint shareAmount) external isBoardMember {
+        require (issuedProposals[proposalID].proposer == msg.sender, "Caller is not the proposer");
+        issuedProposals[proposalID].shareAmount = shareAmount;
+    }   
 
 }
