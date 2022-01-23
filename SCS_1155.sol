@@ -6,11 +6,9 @@ import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v3.2.0/contr
 
 struct issuedProposal {
     address proposer;
-    uint proposalID;
     uint agreedAmount;
     uint shareAmount;
 }
-
 
 struct redeemedProposal {
     uint targetProposalID;
@@ -19,7 +17,6 @@ struct redeemedProposal {
 }
 
 contract SCS is ERC1155 {
-    uint256 public constant GOLD = 0;
     mapping(address => mapping(uint => bool)) public isAgree;
     mapping(address => bool) public boardMember;
     mapping(uint => issuedProposal) public issuedProposals;
@@ -45,7 +42,7 @@ contract SCS is ERC1155 {
     }
 
     function askIssue(uint shareAmount) external isBoardMember returns (uint) {
-        issuedProposals[proposalCnt] = issuedProposal(msg.sender, proposalCnt, 0, shareAmount);
+        issuedProposals[proposalCnt] = issuedProposal(msg.sender, 0, shareAmount);
         return proposalCnt++;
     }
 
@@ -59,7 +56,6 @@ contract SCS is ERC1155 {
     function issue(uint proposalID) external isBoardMember {
         require(issuedProposals[proposalID].agreedAmount == boardMemberAmount, "not all agreed yet");
         require(issuedProposals[proposalID].proposer == msg.sender, "Caller is not the proposer");
-        // require(!_exists(proposalID), "This proposal has been issued.");
         _mint(msg.sender, proposalID, issuedProposals[proposalID].shareAmount, "");
     }
 
@@ -81,7 +77,7 @@ contract SCS is ERC1155 {
         require(issuedProposals[targetId].proposer == msg.sender, "Caller is not the proposer of target proposal");
         require(issuedProposals[targetId].shareAmount >= redeemedProposals[proposalID].burntAmount, "burnt amount exceeds share amount");
 
-        _burn(msg.sender, issuedProposals[targetId].proposalID, redeemedProposals[proposalID].burntAmount);
+        _burn(msg.sender, targetId, redeemedProposals[proposalID].burntAmount);
         issuedProposals[targetId].shareAmount -= redeemedProposals[proposalID].burntAmount;
     }
 
